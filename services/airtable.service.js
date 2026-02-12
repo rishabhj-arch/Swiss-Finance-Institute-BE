@@ -125,13 +125,37 @@ class AirtableService {
     try {
       const { SECTION_STAGE_MAPPING } = require('../utils/constants.util');
       
-      // Save field to Application_Data table
-      const record = await this.base('Application_Data').create({
-        'Application ID': applicationId,
-        'Section': section,
-        'Field Name': fieldName,
-        'Field Value': fieldValue
-      });
+      // First, check if a record with this applicationId, section, and fieldName already exists
+      const existingRecords = await this.base('Application_Data')
+        .select({
+          filterByFormula: `AND({Application ID} = "${applicationId}", {Section} = "${section}", {Field Name} = "${fieldName}")`,
+          maxRecords: 1
+        })
+        .firstPage();
+
+      let record;
+      if (existingRecords.length > 0) {
+        // Update existing record (don't update timestamp - it's computed)
+        record = await this.base('Application_Data').update([
+          {
+            id: existingRecords[0].id,
+            fields: {
+              'Field Value': fieldValue
+            }
+          }
+        ]);
+        record = record[0];
+        console.log(`Updated existing field: ${fieldName} for application: ${applicationId}`);
+      } else {
+        // Create new record (don't set timestamp - it's computed)
+        record = await this.base('Application_Data').create({
+          'Application ID': applicationId,
+          'Section': section,
+          'Field Name': fieldName,
+          'Field Value': fieldValue
+        });
+        console.log(`Created new field: ${fieldName} for application: ${applicationId}`);
+      }
 
       // Automatically update applicant stage based on section
       const newStage = SECTION_STAGE_MAPPING[section];
