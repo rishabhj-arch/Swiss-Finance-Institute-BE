@@ -54,6 +54,8 @@ class ApplicantsController {
     try {
       const { email } = req.params;
 
+      console.log('Fetching applicant with email:', email); // Debug log
+
       // Validate email parameter
       if (!email || email === 'null' || email === 'undefined') {
         return res.status(400).json(createErrorResponse('Valid email is required'));
