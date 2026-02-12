@@ -8,6 +8,11 @@ class ApplicantsController {
 
   async createApplicant(req, res) {
     try {
+      // Validate payload exists
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json(createErrorResponse('Request body is required'));
+      }
+
       // Handle both direct payload and nested data payload
       let applicantData = req.body;
       
@@ -36,12 +41,12 @@ class ApplicantsController {
       console.error('Error in createApplicant:', error);
       
       if (error.message.includes('already exists')) {
-        res.status(409).json(createErrorResponse(error.message));
+        return res.status(409).json(createErrorResponse(error.message));
       } else if (error.message.includes('required') || error.message.includes('Invalid')) {
-        res.status(400).json(createErrorResponse(error.message));
-      } else {
-        res.status(500).json(createErrorResponse('Internal server error', 500));
+        return res.status(400).json(createErrorResponse(error.message));
       }
+      
+      res.status(500).json(createErrorResponse('Internal server error', 500));
     }
   }
 
@@ -49,9 +54,14 @@ class ApplicantsController {
     try {
       const { email } = req.params;
 
-      // Validate email
+      // Validate email parameter
+      if (!email || email === 'null' || email === 'undefined') {
+        return res.status(400).json(createErrorResponse('Valid email is required'));
+      }
+
+      // Validate email format
       const { validateEmail } = require('../utils/validation.util');
-      if (!email || !validateEmail(email)) {
+      if (!validateEmail(email)) {
         return res.status(400).json(createErrorResponse('Valid email is required'));
       }
 
@@ -65,6 +75,11 @@ class ApplicantsController {
       res.json(createSuccessResponse(result, 'Applicant retrieved successfully'));
     } catch (error) {
       console.error('Error in getApplicant:', error);
+      
+      if (error.message.includes('Valid email is required') || error.message.includes('Invalid email')) {
+        return res.status(400).json(createErrorResponse('Valid email is required'));
+      }
+      
       res.status(500).json(createErrorResponse('Internal server error', 500));
     }
   }
@@ -74,10 +89,25 @@ class ApplicantsController {
       const { email } = req.params;
       const updateData = req.body;
 
-      // Validate email
-      const { validateEmail } = require('../utils/validation.util');
-      if (!email || !validateEmail(email)) {
+      // Validate email parameter
+      if (!email || email === 'null' || email === 'undefined') {
         return res.status(400).json(createErrorResponse('Valid email is required'));
+      }
+
+      // Validate email format
+      const { validateEmail } = require('../utils/validation.util');
+      if (!validateEmail(email)) {
+        return res.status(400).json(createErrorResponse('Valid email is required'));
+      }
+
+      // Validate payload exists
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json(createErrorResponse('Request body is required'));
+      }
+
+      // Validate at least one field to update
+      if (!updateData.name && !updateData.currentStage) {
+        return res.status(400).json(createErrorResponse('At least one field (name or currentStage) is required for update'));
       }
 
       // Update applicant
@@ -91,11 +121,11 @@ class ApplicantsController {
     } catch (error) {
       console.error('Error in updateApplicant:', error);
       
-      if (error.message.includes('required') || error.message.includes('Invalid')) {
-        res.status(400).json(createErrorResponse(error.message));
-      } else {
-        res.status(500).json(createErrorResponse('Internal server error', 500));
+      if (error.message.includes('Valid email is required') || error.message.includes('Invalid email') || error.message.includes('required') || error.message.includes('Invalid')) {
+        return res.status(400).json(createErrorResponse(error.message));
       }
+      
+      res.status(500).json(createErrorResponse('Internal server error', 500));
     }
   }
 }

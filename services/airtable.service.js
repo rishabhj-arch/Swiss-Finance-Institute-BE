@@ -25,6 +25,11 @@ class AirtableService {
 
   async getApplicant(email) {
     try {
+      // Validate email parameter
+      if (!email || typeof email !== 'string' || email === 'null' || email === 'undefined') {
+        throw new Error('Valid email is required');
+      }
+
       const records = await this.base('Applicants')
         .select({
           filterByFormula: `{Email} = "${email}"`,
@@ -41,6 +46,11 @@ class AirtableService {
 
   async updateApplicantStatus(applicationId, status, submittedAt = null) {
     try {
+      // Validate applicationId parameter
+      if (!applicationId || typeof applicationId !== 'string' || applicationId === 'null' || applicationId === 'undefined') {
+        throw new Error('Valid application ID is required');
+      }
+
       const records = await this.base('Applicants')
         .select({
           filterByFormula: `{Application ID} = "${applicationId}"`,

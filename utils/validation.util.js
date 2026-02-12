@@ -1,13 +1,31 @@
 // Email validation
 const validateEmail = (email) => {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  
+  // Check for null/undefined string values
+  if (email === 'null' || email === 'undefined') {
+    return false;
+  }
+  
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return emailRegex.test(email.trim());
 };
 
 // Application ID validation (basic check only)
 const validateApplicationId = (applicationId) => {
   // Basic validation - just check if it's a non-empty string
-  return applicationId && typeof applicationId === 'string' && applicationId.trim().length > 0;
+  if (!applicationId || typeof applicationId !== 'string') {
+    return false;
+  }
+  
+  // Check for null/undefined string values
+  if (applicationId === 'null' || applicationId === 'undefined') {
+    return false;
+  }
+  
+  return applicationId.trim().length > 0;
 };
 
 // Save field request validation
@@ -88,6 +106,11 @@ const validateSubmitApplicationRequest = (data) => {
 const validateApplicantData = (data) => {
   const errors = [];
 
+  if (!data) {
+    errors.push('Applicant data is required');
+    return { isValid: false, errors };
+  }
+
   if (!data.email) {
     errors.push('Email is required');
   } else if (!validateEmail(data.email)) {
@@ -102,7 +125,7 @@ const validateApplicantData = (data) => {
 
   if (!data.applicationId) {
     errors.push('Application ID is required');
-  } else if (typeof data.applicationId !== 'string' || data.applicationId.trim().length === 0) {
+  } else if (!validateApplicationId(data.applicationId)) {
     errors.push('Application ID must be a non-empty string');
   }
 

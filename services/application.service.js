@@ -193,8 +193,9 @@ class ApplicationService {
       }
 
       // Step 1: Retrieve payment intent from Stripe and confirm status
+      let paymentIntent;
       try {
-        const paymentIntent = await this.paymentService.confirmPaymentSuccess(paymentIntentId);
+        paymentIntent = await this.paymentService.confirmPaymentSuccess(paymentIntentId);
       } catch (error) {
         // If payment intent doesn't exist, create a dummy one for testing
         if (error.message.includes('No such payment_intent')) {
