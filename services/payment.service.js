@@ -94,8 +94,17 @@ class PaymentService {
 
   async testConfirmPayment(paymentIntentId) {
     try {
-      // Confirm payment using test card (for testing only)
-      const paymentIntent = await this.stripe.paymentIntents.confirm(
+      // First check the current status of the payment intent
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      // If payment already succeeded, return it without trying to confirm again
+      if (paymentIntent.status === 'succeeded') {
+        console.log(`Payment ${paymentIntentId} already succeeded, skipping confirmation`);
+        return paymentIntent;
+      }
+      
+      // Only confirm if payment is not already succeeded
+      const confirmedPaymentIntent = await this.stripe.paymentIntents.confirm(
         paymentIntentId,
         {
           payment_method: 'pm_card_visa'
@@ -103,7 +112,7 @@ class PaymentService {
       );
 
       // If payment succeeded, update status in Airtable
-      if (paymentIntent.status === 'succeeded') {
+      if (confirmedPaymentIntent.status === 'succeeded') {
         const airtableService = require('./airtable.service');
         const { PAYMENT_STATUS } = require('../utils/constants.util');
         
@@ -111,7 +120,7 @@ class PaymentService {
         console.log(`Payment ${paymentIntentId} status updated to Succeeded in Airtable`);
       }
 
-      return paymentIntent;
+      return confirmedPaymentIntent;
     } catch (error) {
       console.error('Error confirming test payment:', error);
       throw error;

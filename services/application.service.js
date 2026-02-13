@@ -206,7 +206,7 @@ class ApplicationService {
         }
       }
 
-      // Step 2: Validate all 8 required sections exist
+      // Step 2: Get application data and validate required sections
       const applicationData = await this.airtableService.getApplicationData(applicationId);
       
       const sectionValidation = validateRequiredSections(applicationData);
@@ -223,18 +223,7 @@ class ApplicationService {
         submittedAt
       );
 
-      // Step 4: Update payment record status to "Succeeded"
-      const { PAYMENT_STATUS } = require('../utils/constants.util');
-      await this.airtableService.updatePaymentStatus(paymentIntentId, PAYMENT_STATUS.SUCCEEDED);
-
-      // Step 5: Save submission metadata
-      await this.saveApplicationField(
-        applicationId,
-        'payment',
-        'submittedAt',
-        submittedAt
-      );
-
+      // Step 4: Return success response
       await this.saveApplicationField(
         applicationId,
         'payment',
@@ -251,7 +240,8 @@ class ApplicationService {
         completedSections: sectionValidation.presentSections
       };
     } catch (error) {
-      console.error('Error submitting application:', error);
+      // Only log the error message, not the full stack
+      console.error('Submit application error:', error.message);
       throw error;
     }
   }

@@ -131,17 +131,17 @@ class ApplicationController {
 
       res.json(createSuccessResponse(result, 'Application submitted successfully'));
     } catch (error) {
-      console.error('Error in submitApplication:', error);
-      
-      if (error.message.includes('required') || error.message.includes('Invalid') || error.message.includes('Missing')) {
-        return res.status(400).json(createErrorResponse(error.message));
-      } else if (error.message.includes('Missing required sections')) {
+      // Clean error handling - only log minimal info
+      if (error.message.includes('Missing required sections')) {
         return res.status(400).json(createErrorResponse(error.message));
       } else if (error.message.includes('Payment not succeeded') || error.message.includes('Payment intent not found')) {
         return res.status(400).json(createErrorResponse('Payment verification failed. Please ensure the payment is completed and valid.'));
+      } else if (error.message.includes('required') || error.message.includes('Invalid')) {
+        return res.status(400).json(createErrorResponse(error.message));
+      } else {
+        console.error('Submit application error:', error.message);
+        return res.status(500).json(createErrorResponse('Internal server error', 500));
       }
-      
-      res.status(500).json(createErrorResponse('Internal server error', 500));
     }
   }
 
