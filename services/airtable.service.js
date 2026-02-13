@@ -277,6 +277,31 @@ class AirtableService {
     }
   }
 
+  async deleteApplicationField(applicationId, fieldName) {
+    try {
+      // Find the record to delete
+      const records = await this.base('Application_Data')
+        .select({
+          filterByFormula: `AND({Application ID} = "${applicationId}", {Field Name} = "${fieldName}")`,
+          maxRecords: 1
+        })
+        .firstPage();
+
+      if (records.length === 0) {
+        throw new Error('Application field not found');
+      }
+
+      // Delete the record
+      await this.base('Application_Data').destroy([records[0].id]);
+      
+      console.log(`Deleted application field: ${fieldName} for application: ${applicationId}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting application field:', error);
+      throw error;
+    }
+  }
+
   async validateApplicationSections(applicationId) {
     try {
       const records = await this.getApplicationData(applicationId);

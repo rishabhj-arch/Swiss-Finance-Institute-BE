@@ -17,6 +17,7 @@ const { createSuccessResponse, createErrorResponse } = require('./utils/response
 const applicationRoutes = require('./routes/application.routes');
 const webhookRoutes = require('./routes/webhook.routes');
 const applicantsRoutes = require('./routes/applicants.routes');
+const fileUploadRoutes = require('./routes/fileUpload.routes');
 
 class App {
   constructor() {
@@ -28,17 +29,12 @@ class App {
   }
 
   setupMiddleware() {
-    // Body parsing middleware
     this.app.use(bodyParser.json({ limit: '10mb' }));
     this.app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-    // CORS middleware
     this.app.use(corsMiddleware.getMiddleware());
-
-    // Stripe raw body middleware for webhooks
     this.app.use(stripeRawBodyMiddleware.getMiddleware());
 
-    // Request logging middleware
     this.app.use((req, res, next) => {
       console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
       next();
@@ -46,7 +42,6 @@ class App {
   }
 
   setupRoutes() {
-    // Health check endpoint
     this.app.get('/health', (req, res) => {
       res.json({
         success: true,
@@ -56,7 +51,6 @@ class App {
       });
     });
 
-    // Health check endpoint
     this.app.get('/test', (req, res) => {
       res.json({
         success: true,
@@ -66,16 +60,11 @@ class App {
       });
     });
 
-    // Application routes
     applicationRoutes.setupRoutes(this.app);
-
-    // Applicants routes
     applicantsRoutes.setupRoutes(this.app);
-
-    // Webhook routes
+    this.app.use('/api/files', fileUploadRoutes.getRoutes());
     webhookRoutes.setupRoutes(this.app);
 
-    // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({
         success: false,
@@ -106,6 +95,7 @@ class App {
       console.log(`   GET  /api/applicants/:email (No Auth Required)`);
       console.log(`   PUT  /api/applicants/:email (No Auth Required)`);
       console.log(`   POST /api/webhook`);
+      console.log(`   POST /api/files/upload (API Key Required) - Upload/Replace file (auto-detect)`);
       console.log(`🔑 API Key: ${process.env.NODE_API_KEY ? 'Configured' : 'Not Configured'}`);
       console.log(`🌍 CORS allowed origin: ${this.config.ALLOWED_ORIGIN}`);
       console.log('✅ All required environment variables are configured');

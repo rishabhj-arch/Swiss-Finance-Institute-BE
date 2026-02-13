@@ -59,6 +59,8 @@ class ApplicationController {
         fieldValue
       );
 
+      console.log('Result:', result);
+
       res.json(createSuccessResponse(result, 'Field saved successfully'));
     } catch (error) {
       console.error('Error in saveField:', error);
