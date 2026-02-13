@@ -62,34 +62,54 @@ class ApplicationService {
     }
   }
 
-  async saveApplicationField(applicationId, section, fieldName, fieldValue) {
+  async saveApplicationField(createApplicantBody) {
+    console.log(' ==000000000===',);
     try {
       // Validate request
-      const { validateSaveFieldRequest, sanitizeInput } = require('../utils/validation.util');
-      const validation = validateSaveFieldRequest({
-        applicationId,
-        section,
-        fieldName,
-        fieldValue
-      });
+      // const { validateSaveFieldRequest, sanitizeInput } = require('../utils/validation.util');
+      // const validation = validateSaveFieldRequest({
+      //   applicationId,
+      //   section,
+      //   fieldName,
+      //   fieldValue
+      // });
 
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
-      }
+      // if (!validation.isValid) {
+      //   throw new Error(validation.errors.join(', '));
+      // }
 
-      // Sanitize inputs
-      const sanitizedSection = sanitizeInput(section);
-      const sanitizedFieldName = sanitizeInput(fieldName);
-      const sanitizedFieldValue = sanitizeInput(String(fieldValue));
-
+      // // Sanitize inputs
+      // const sanitizedSection = sanitizeInput(section);
+      // const sanitizedFieldName = sanitizeInput(fieldName);
+      // const sanitizedFieldValue = sanitizeInput(String(fieldValue));
+      
+      // const createApplicantBody = {
+      //   applicationId,
+      //   firstName,
+      //   middleName,
+      //   lastName,
+      //   preferredName,
+      //   dob,
+      //   citizenship,
+      //   email,
+      //   phone,
+      //   address,
+      //   city,
+      //   state,
+      //   postalCode,
+      //   country,
+      //   emergencyName,
+      //   emergencyRelationship,
+      //   emergencyPhone,
+      //   emergencyEmail,
+      //   uploadArea,
+      // }
+      console.log(' 1=====',);
       // Save field to Airtable
       const record = await this.airtableService.saveApplicationField(
-        applicationId,
-        sanitizedSection,
-        sanitizedFieldName,
-        sanitizedFieldValue
+        createApplicantBody
       );
-
+console.log(' =2====',);
       return {
         id: record.id,
         applicationId: record.fields['Application ID'],
@@ -98,6 +118,8 @@ class ApplicationService {
         timestamp: record.fields['Timestamp']
       };
     } catch (error) {
+
+      console.log(' ====================',);
       console.error('Error saving application field:', error);
       throw error;
     }
@@ -263,8 +285,8 @@ class ApplicationService {
     }
   }
 
-  async saveApplicationField(applicationId, section, fieldName, fieldValue) {
-    return await this.airtableService.saveApplicationField(applicationId, section, fieldName, fieldValue);
+  async saveApplicationField(createApplicantBody) {
+    return await this.airtableService.saveApplicationField(createApplicantBody);
   }
 }
 

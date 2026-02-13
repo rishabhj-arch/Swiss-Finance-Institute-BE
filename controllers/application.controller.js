@@ -1,5 +1,9 @@
-const applicationService = require('../services/application.service');
-const { createSuccessResponse, createErrorResponse } = require('../utils/response.util');
+const airtableConfig = require("../config/airtable.config");
+const applicationService = require("../services/application.service");
+const {
+  createSuccessResponse,
+  createErrorResponse,
+} = require("../utils/response.util");
 
 class ApplicationController {
   constructor() {
@@ -11,21 +15,32 @@ class ApplicationController {
       const { email } = req.params;
 
       // Validate email parameter
-      if (!email || email === 'null' || email === 'undefined') {
-        return res.status(400).json(createErrorResponse('Valid email is required'));
+      if (!email || email === "null" || email === "undefined") {
+        return res
+          .status(400)
+          .json(createErrorResponse("Valid email is required"));
       }
 
-      const result = await this.applicationService.getOrCreateApplication(email);
+      const result = await this.applicationService.getOrCreateApplication(
+        email
+      );
 
-      res.json(createSuccessResponse(result, 'Application retrieved successfully'));
+      res.json(
+        createSuccessResponse(result, "Application retrieved successfully")
+      );
     } catch (error) {
-      console.error('Error in getApplication:', error);
-      
-      if (error.message.includes('Valid email is required') || error.message.includes('Invalid email')) {
-        return res.status(400).json(createErrorResponse('Valid email is required'));
+      console.error("Error in getApplication:", error);
+
+      if (
+        error.message.includes("Valid email is required") ||
+        error.message.includes("Invalid email")
+      ) {
+        return res
+          .status(400)
+          .json(createErrorResponse("Valid email is required"));
       }
-      
-      res.status(500).json(createErrorResponse('Internal server error', 500));
+
+      res.status(500).json(createErrorResponse("Internal server error", 500));
     }
   }
 
@@ -33,43 +48,147 @@ class ApplicationController {
     try {
       // Validate payload exists
       if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json(createErrorResponse('Request body is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Request body is required"));
       }
 
-      const { applicationId, section, fieldName, fieldValue } = req.body;
-
-      // Validate all required fields
-      if (!applicationId) {
-        return res.status(400).json(createErrorResponse('Application ID is required'));
-      }
-      if (!section) {
-        return res.status(400).json(createErrorResponse('Section is required'));
-      }
-      if (!fieldName) {
-        return res.status(400).json(createErrorResponse('Field name is required'));
-      }
-      if (fieldValue === undefined || fieldValue === null) {
-        return res.status(400).json(createErrorResponse('Field value is required'));
-      }
-
-      const result = await this.applicationService.saveApplicationField(
+      const {
         applicationId,
-        section,
-        fieldName,
-        fieldValue
-      );
+        firstName,
+        middleName,
+        lastName,
+        preferredName,
+        dob,
+        citizenship,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        postalCode,
+        country,
+        emergencyName,
+        emergencyRelationship,
+        emergencyPhone,
+        emergencyEmail,
+        uploadArea,
+      } = req.body;
+      console.log("req.body =====", req.body);
+      // Validate all required fields
+      // if (!applicationId) {
+      //   return res.status(400).json(createErrorResponse('Application ID is required'));
+      // }
+      // if (!section) {
+      //   return res.status(400).json(createErrorResponse('Section is required'));
+      // }
+      // if (!fieldName) {
+      //   return res.status(400).json(createErrorResponse('Field name is required'));
+      // }
+      // if (fieldValue === undefined || fieldValue === null) {
+      //   return res.status(400).json(createErrorResponse('Field value is required'));
+      // }
 
-      console.log('Result:', result);
+      const dbUrl = airtableConfig.getBase();
 
-      res.json(createSuccessResponse(result, 'Field saved successfully'));
+      const existingRecords = await dbUrl("Application_Data")
+        .select({
+          filterByFormula: `{applicationId} = "${applicationId}"`,
+          maxRecords: 1,
+        })
+        .firstPage();
+      console.log("existingRecords =====", existingRecords);
+      // const existingRecords = "";
+      let record;
+      if (existingRecords.length > 0) {
+        // Update existing record (don't update timestamp - it's computed)
+        record = await dbUrl("Application_Data").update([
+          {
+            id: existingRecords[0].id,
+            fields: {
+              firstName,
+              middleName,
+              lastName,
+              preferredName,
+              dob,
+              citizenship,
+              email,
+              phone,
+              address,
+              city,
+              state,
+              postalCode,
+              country,
+              emergencyName,
+              emergencyRelationship,
+              emergencyPhone,
+              emergencyEmail,
+              uploadArea,
+            },
+          },
+        ]);
+        record = record[0];
+      } else {
+        // Create new record (don't set timestamp - it's computed)
+        record = await dbUrl("Application_Data").create({
+          applicationId,
+          firstName,
+          middleName,
+          lastName,
+          preferredName,
+          dob,
+          citizenship,
+          email,
+          phone,
+          address,
+          city,
+          state,
+          postalCode,
+          country,
+          emergencyName,
+          emergencyRelationship,
+          emergencyPhone,
+          emergencyEmail,
+          uploadArea,
+        });
+      }
+
+      // const result = await this.applicationService.saveApplicationField(
+      //   applicationId,
+      //   firstName,
+      //   middleName,
+      //   lastName,
+      //   preferredName,
+      //   dob,
+      //   citizenship,
+      //   email,
+      //   phone,
+      //   address,
+      //   city,
+      //   state,
+      //   postalCode,
+      //   country,
+      //   emergencyName,
+      //   emergencyRelationship,
+      //   emergencyPhone,
+      //   emergencyEmail,
+      //   uploadArea,
+      // );
+
+      // console.log("Result:", result);
+
+      res.json(createSuccessResponse(record, "Field saved successfully"));
     } catch (error) {
-      console.error('Error in saveField:', error);
-      
-      if (error.message.includes('required') || error.message.includes('Invalid')) {
+      console.error("Error in saveField:", error);
+
+      if (
+        error.message.includes("required") ||
+        error.message.includes("Invalid")
+      ) {
         return res.status(400).json(createErrorResponse(error.message));
       }
-      
-      res.status(500).json(createErrorResponse('Internal server error', 500));
+
+      res.status(500).json(createErrorResponse("Internal server error", 500));
     }
   }
 
@@ -77,17 +196,23 @@ class ApplicationController {
     try {
       // Validate payload exists
       if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json(createErrorResponse('Request body is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Request body is required"));
       }
 
       const { applicationId, decisionType } = req.body;
 
       // Validate all required fields
       if (!applicationId) {
-        return res.status(400).json(createErrorResponse('Application ID is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Application ID is required"));
       }
       if (!decisionType) {
-        return res.status(400).json(createErrorResponse('Decision type is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Decision type is required"));
       }
 
       const result = await this.applicationService.createPaymentIntent(
@@ -95,15 +220,20 @@ class ApplicationController {
         decisionType
       );
 
-      res.json(createSuccessResponse(result, 'Payment intent created successfully'));
+      res.json(
+        createSuccessResponse(result, "Payment intent created successfully")
+      );
     } catch (error) {
-      console.error('Error in createPaymentIntent:', error);
-      
-      if (error.message.includes('required') || error.message.includes('Invalid')) {
+      console.error("Error in createPaymentIntent:", error);
+
+      if (
+        error.message.includes("required") ||
+        error.message.includes("Invalid")
+      ) {
         return res.status(400).json(createErrorResponse(error.message));
       }
-      
-      res.status(500).json(createErrorResponse('Internal server error', 500));
+
+      res.status(500).json(createErrorResponse("Internal server error", 500));
     }
   }
 
@@ -111,17 +241,23 @@ class ApplicationController {
     try {
       // Validate payload exists
       if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json(createErrorResponse('Request body is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Request body is required"));
       }
 
       const { applicationId, paymentIntentId } = req.body;
 
       // Validate all required fields
       if (!applicationId) {
-        return res.status(400).json(createErrorResponse('Application ID is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Application ID is required"));
       }
       if (!paymentIntentId) {
-        return res.status(400).json(createErrorResponse('Payment Intent ID is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Payment Intent ID is required"));
       }
 
       const result = await this.applicationService.submitApplication(
@@ -129,18 +265,34 @@ class ApplicationController {
         paymentIntentId
       );
 
-      res.json(createSuccessResponse(result, 'Application submitted successfully'));
+      res.json(
+        createSuccessResponse(result, "Application submitted successfully")
+      );
     } catch (error) {
       // Clean error handling - only log minimal info
-      if (error.message.includes('Missing required sections')) {
+      if (error.message.includes("Missing required sections")) {
         return res.status(400).json(createErrorResponse(error.message));
-      } else if (error.message.includes('Payment not succeeded') || error.message.includes('Payment intent not found')) {
-        return res.status(400).json(createErrorResponse('Payment verification failed. Please ensure the payment is completed and valid.'));
-      } else if (error.message.includes('required') || error.message.includes('Invalid')) {
+      } else if (
+        error.message.includes("Payment not succeeded") ||
+        error.message.includes("Payment intent not found")
+      ) {
+        return res
+          .status(400)
+          .json(
+            createErrorResponse(
+              "Payment verification failed. Please ensure the payment is completed and valid."
+            )
+          );
+      } else if (
+        error.message.includes("required") ||
+        error.message.includes("Invalid")
+      ) {
         return res.status(400).json(createErrorResponse(error.message));
       } else {
-        console.error('Submit application error:', error.message);
-        return res.status(500).json(createErrorResponse('Internal server error', 500));
+        console.error("Submit application error:", error.message);
+        return res
+          .status(500)
+          .json(createErrorResponse("Internal server error", 500));
       }
     }
   }
@@ -149,27 +301,41 @@ class ApplicationController {
     try {
       // Validate payload exists
       if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json(createErrorResponse('Request body is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Request body is required"));
       }
 
       const { paymentIntentId } = req.body;
 
       // Validate all required fields
       if (!paymentIntentId) {
-        return res.status(400).json(createErrorResponse('Payment Intent ID is required'));
+        return res
+          .status(400)
+          .json(createErrorResponse("Payment Intent ID is required"));
       }
 
-      const result = await this.applicationService.testConfirmPayment(paymentIntentId);
+      const result = await this.applicationService.testConfirmPayment(
+        paymentIntentId
+      );
 
-      res.json(createSuccessResponse(result, 'Payment confirmed successfully for testing'));
+      res.json(
+        createSuccessResponse(
+          result,
+          "Payment confirmed successfully for testing"
+        )
+      );
     } catch (error) {
-      console.error('Error in testConfirmPayment:', error);
-      
-      if (error.message.includes('required') || error.message.includes('Invalid')) {
+      console.error("Error in testConfirmPayment:", error);
+
+      if (
+        error.message.includes("required") ||
+        error.message.includes("Invalid")
+      ) {
         return res.status(400).json(createErrorResponse(error.message));
       }
-      
-      res.status(500).json(createErrorResponse('Internal server error', 500));
+
+      res.status(500).json(createErrorResponse("Internal server error", 500));
     }
   }
 }
