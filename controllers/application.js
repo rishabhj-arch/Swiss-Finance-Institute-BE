@@ -130,7 +130,7 @@ exports.createApplication = async (req, res) => {
       return res.status(400).json({ error: "applicationId is required" });
     }
 
-    // Find Applicant by applicationId
+    // Find Applicant
     const applicantRecords = await base("Applicants")
       .select({
         filterByFormula: `{applicationId} = '${applicationId}'`,
@@ -144,15 +144,43 @@ exports.createApplication = async (req, res) => {
 
     const applicantRecordId = applicantRecords[0].id;
 
-    // Create Application_Data record
-    const applicationData = await base("Application_Data").create({
-      ...restFields,
-      applicationId: [applicantRecordId],
-    });
+    // Check if Application_Data exists
+    const existingApplication = await base("Application_Data")
+      .select({
+        filterByFormula: `{applicationId} = '${applicantRecordId}'`,
+        maxRecords: 1,
+      })
+      .firstPage();
 
-    const applicationDataId = applicationData.id;
+    let applicationDataId;
 
-    // Create Education records (multiple)
+    if (existingApplication.length > 0) {
+      applicationDataId = existingApplication[0].id;
+
+      await base("Application_Data").update(applicationDataId, {
+        ...restFields,
+      });
+    } else {
+      const newApplication = await base("Application_Data").create({
+        ...restFields,
+        applicationId: [applicantRecordId],
+      });
+
+      applicationDataId = newApplication.id;
+    }
+
+    // DELETE existing Education linked to this application
+    const existingEducation = await base("Education")
+      .select({
+        filterByFormula: `{application_data} = '${applicationDataId}'`,
+      })
+      .all();
+
+    if (existingEducation.length > 0) {
+      await base("Education").destroy(existingEducation.map((rec) => rec.id));
+    }
+
+    // CREATE Education (fresh)
     let educationIds = [];
 
     if (educationContainer.length > 0) {
@@ -165,7 +193,6 @@ exports.createApplication = async (req, res) => {
             concentration: edu.concentration,
             graduationDate: edu.graduationDate,
             gpa: edu.gpa,
-            applicationData: [applicationDataId], // link back
           },
         }))
       );
@@ -173,7 +200,18 @@ exports.createApplication = async (req, res) => {
       educationIds = educationRecords.map((rec) => rec.id);
     }
 
-    // Create Experience records (multiple)
+    // DELETE existing Experience linked to this application
+    const existingExperience = await base("Experience")
+      .select({
+        filterByFormula: `{application_data} = '${applicationDataId}'`,
+      })
+      .all();
+
+    if (existingExperience.length > 0) {
+      await base("Experience").destroy(existingExperience.map((rec) => rec.id));
+    }
+
+    // CREATE Experience (fresh)
     let experienceIds = [];
 
     if (experienceContainer.length > 0) {
@@ -185,7 +223,6 @@ exports.createApplication = async (req, res) => {
             startDate: exp.startDate,
             endDate: exp.endDate,
             responsibilitiesAchievements: exp.responsibilitiesAchievements,
-            applicationData: [applicationDataId], // link back
           },
         }))
       );
@@ -193,19 +230,11 @@ exports.createApplication = async (req, res) => {
       experienceIds = experienceRecords.map((rec) => rec.id);
     }
 
-    // Update Application_Data to store linked education & experience
-    await base("Application_Data").update(applicationDataId, {
-      educationContainer: educationIds,
-      experienceContainer: experienceIds,
-    });
-
     return res.json({
-      message: "Application created successfully",
-      data: applicationData,
+      message: "Application saved successfully",
     });
   } catch (error) {
-    console.error("Error in createApplication:", error);
-
+    console.error("Error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
