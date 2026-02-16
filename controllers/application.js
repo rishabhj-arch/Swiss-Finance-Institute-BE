@@ -56,7 +56,7 @@ exports.getApplications = async (req, res) => {
       .firstPage();
 
     let applicationData = applicationDataRecords[0];
-    console.log("applicationData =====", applicationData);
+
     let educationData = [];
     let experienceData = [];
 
@@ -151,12 +151,11 @@ exports.createApplication = async (req, res) => {
         maxRecords: 1,
       })
       .firstPage();
-
     let applicationDataId;
 
     if (existingApplication.length > 0) {
       applicationDataId = existingApplication[0].id;
-
+      console.log("existingApplication[0].id =====", existingApplication[0].id);
       await base("Application_Data").update(applicationDataId, {
         ...restFields,
       });
@@ -172,7 +171,7 @@ exports.createApplication = async (req, res) => {
     // DELETE existing Education linked to this application
     const existingEducation = await base("Education")
       .select({
-        filterByFormula: `{application_data} = '${applicationDataId}'`,
+        filterByFormula: `{application_data} = '${applicationId}'`,
       })
       .all();
 
@@ -204,7 +203,7 @@ exports.createApplication = async (req, res) => {
     // DELETE existing Experience linked to this application
     const existingExperience = await base("Experience")
       .select({
-        filterByFormula: `{application_data} = '${applicationDataId}'`,
+        filterByFormula: `{application_data} = '${applicationId}'`,
       })
       .all();
 
