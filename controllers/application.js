@@ -50,13 +50,13 @@ exports.getApplications = async (req, res) => {
     // Get Application_Data linked to applicant
     const applicationDataRecords = await base("Application_Data")
       .select({
-        filterByFormula: `FIND('${applicantRecordId}', ARRAYJOIN({applicationId}))`,
+        filterByFormula: `{applicationId} = '${applicationId}'`,
         maxRecords: 1,
       })
       .firstPage();
 
     let applicationData = applicationDataRecords[0];
-
+    console.log("applicationData =====", applicationData);
     let educationData = [];
     let experienceData = [];
 
@@ -147,7 +147,7 @@ exports.createApplication = async (req, res) => {
     // Check if Application_Data exists
     const existingApplication = await base("Application_Data")
       .select({
-        filterByFormula: `{applicationId} = '${applicantRecordId}'`,
+        filterByFormula: `{applicationId} = '${applicationId}'`,
         maxRecords: 1,
       })
       .firstPage();
@@ -163,7 +163,7 @@ exports.createApplication = async (req, res) => {
     } else {
       const newApplication = await base("Application_Data").create({
         ...restFields,
-        applicationId: [applicantRecordId],
+        applicationId: applicationId,
       });
 
       applicationDataId = newApplication.id;
@@ -193,6 +193,7 @@ exports.createApplication = async (req, res) => {
             concentration: edu.concentration,
             graduationDate: edu.graduationDate,
             gpa: edu.gpa,
+            Application_Data: [applicationDataId],
           },
         }))
       );
@@ -223,6 +224,7 @@ exports.createApplication = async (req, res) => {
             startDate: exp.startDate,
             endDate: exp.endDate,
             responsibilitiesAchievements: exp.responsibilitiesAchievements,
+            Application_Data: [applicationDataId],
           },
         }))
       );
