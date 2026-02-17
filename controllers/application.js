@@ -155,7 +155,6 @@ exports.createApplication = async (req, res) => {
 
     if (existingApplication.length > 0) {
       applicationDataId = existingApplication[0].id;
-      console.log("existingApplication[0].id =====", existingApplication[0].id);
       await base("Application_Data").update(applicationDataId, {
         ...restFields,
       });
@@ -168,67 +167,73 @@ exports.createApplication = async (req, res) => {
       applicationDataId = newApplication.id;
     }
 
-    // DELETE existing Education linked to this application
-    const existingEducation = await base("Education")
-      .select({
-        filterByFormula: `{application_data} = '${applicationId}'`,
-      })
-      .all();
+    if (educationContainer) {
+      // DELETE existing Education linked to this application
+      const existingEducation = await base("Education")
+        .select({
+          filterByFormula: `{application_data} = '${applicationId}'`,
+        })
+        .all();
 
-    if (existingEducation.length > 0) {
-      await base("Education").destroy(existingEducation.map((rec) => rec.id));
+      if (existingEducation.length > 0) {
+        await base("Education").destroy(existingEducation.map((rec) => rec.id));
+      }
+
+      // CREATE Education (fresh)
+      let educationIds = [];
+
+      if (educationContainer.length > 0) {
+        const educationRecords = await base("Education").create(
+          educationContainer.map((edu) => ({
+            fields: {
+              institutionName: edu.institutionName,
+              degreeType: edu.degreeType,
+              fieldOfStudy: edu.fieldOfStudy,
+              concentration: edu.concentration,
+              graduationDate: edu.graduationDate,
+              gpa: edu.gpa,
+              Application_Data: [applicationDataId],
+            },
+          }))
+        );
+
+        educationIds = educationRecords.map((rec) => rec.id);
+      }
     }
 
-    // CREATE Education (fresh)
-    let educationIds = [];
+    if (experienceContainer) {
+      // DELETE existing Experience linked to this application
+      const existingExperience = await base("Experience")
+        .select({
+          filterByFormula: `{application_data} = '${applicationId}'`,
+        })
+        .all();
 
-    if (educationContainer.length > 0) {
-      const educationRecords = await base("Education").create(
-        educationContainer.map((edu) => ({
-          fields: {
-            institutionName: edu.institutionName,
-            degreeType: edu.degreeType,
-            fieldOfStudy: edu.fieldOfStudy,
-            concentration: edu.concentration,
-            graduationDate: edu.graduationDate,
-            gpa: edu.gpa,
-            Application_Data: [applicationDataId],
-          },
-        }))
-      );
+      if (existingExperience.length > 0) {
+        await base("Experience").destroy(
+          existingExperience.map((rec) => rec.id)
+        );
+      }
 
-      educationIds = educationRecords.map((rec) => rec.id);
-    }
+      // CREATE Experience (fresh)
+      let experienceIds = [];
 
-    // DELETE existing Experience linked to this application
-    const existingExperience = await base("Experience")
-      .select({
-        filterByFormula: `{application_data} = '${applicationId}'`,
-      })
-      .all();
+      if (experienceContainer.length > 0) {
+        const experienceRecords = await base("Experience").create(
+          experienceContainer.map((exp) => ({
+            fields: {
+              companyName: exp.companyName,
+              jobTitle: exp.jobTitle,
+              startDate: exp.startDate,
+              endDate: exp.endDate,
+              responsibilitiesAchievements: exp.responsibilitiesAchievements,
+              Application_Data: [applicationDataId],
+            },
+          }))
+        );
 
-    if (existingExperience.length > 0) {
-      await base("Experience").destroy(existingExperience.map((rec) => rec.id));
-    }
-
-    // CREATE Experience (fresh)
-    let experienceIds = [];
-
-    if (experienceContainer.length > 0) {
-      const experienceRecords = await base("Experience").create(
-        experienceContainer.map((exp) => ({
-          fields: {
-            companyName: exp.companyName,
-            jobTitle: exp.jobTitle,
-            startDate: exp.startDate,
-            endDate: exp.endDate,
-            responsibilitiesAchievements: exp.responsibilitiesAchievements,
-            Application_Data: [applicationDataId],
-          },
-        }))
-      );
-
-      experienceIds = experienceRecords.map((rec) => rec.id);
+        experienceIds = experienceRecords.map((rec) => rec.id);
+      }
     }
 
     return res.json({
