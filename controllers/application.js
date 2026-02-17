@@ -121,8 +121,8 @@ exports.createApplication = async (req, res) => {
 
     const {
       applicationId,
-      educationContainer = [],
-      experienceContainer = [],
+      educationContainer,
+      experienceContainer,
       ...restFields
     } = req.body;
 
