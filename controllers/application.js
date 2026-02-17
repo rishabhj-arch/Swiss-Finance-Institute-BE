@@ -60,6 +60,12 @@ exports.getApplications = async (req, res) => {
     let educationData = [];
     let experienceData = [];
 
+    const reorderByIds = (records, ids) => {
+      const map = {};
+      records.forEach((rec) => (map[rec.id] = rec.fields));
+      return ids.map((id) => map[id]).filter(Boolean);
+    };
+
     if (applicationData) {
       const educationIds = applicationData.fields.educationContainer || [];
       const experienceIds = applicationData.fields.experienceContainer || [];
@@ -74,7 +80,7 @@ exports.getApplications = async (req, res) => {
           })
           .firstPage();
 
-        educationData = educationRecords.map((rec) => rec.fields);
+        educationData = reorderByIds(educationRecords, educationIds);
       }
 
       // Fetch Experience records
@@ -87,7 +93,7 @@ exports.getApplications = async (req, res) => {
           })
           .firstPage();
 
-        experienceData = experienceRecords.map((rec) => rec.fields);
+        experienceData = reorderByIds(experienceRecords, experienceIds);
       }
     }
 
